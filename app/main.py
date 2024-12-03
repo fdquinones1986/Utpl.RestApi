@@ -1,52 +1,77 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 
+# Crear instancia de FastAPI
 app = FastAPI()
 
-
-class Orden(BaseModel):
+# Modelos Pydantic para validación de datos
+class MenuItem(BaseModel):
     id: int
-    producto: str
-    cantidad: float
-    tipo: str
-    precio: float
+    name: str
+    price: float
+    description: str
+
+class Order(BaseModel):
+    id: int
+    items: List[int]  # Lista de IDs de los elementos del menú
     total: float
+    customer_name: str
+    status: str = "pending"
 
+# Base de datos simulada
+menu_db = []
+order_db = []
 
-# Lista vacía para almacenar los artículos creados.
-ordenes = []
+# Rutas para gestión de Menú
+@app.get("/menu/", response_model=List[MenuItem])
+def get_menu():
+    """Obtener todos los ítems del menú."""
+    return menu_db
 
-# Ruta para la página de inicio que devuelve un mensaje de bienvenida.
-@app.get('/')
-def bienvenida():
-    return {'mensaje': 'Welcome a mi aplicación FastAPI Utpl 2028'}
+@app.post("/menu/", response_model=MenuItem)
+def add_menu_item(item: MenuItem):
+    """Añadir un ítem al menú."""
+    menu_db.append(item)
+    return item
 
-# Ruta para obtener todos los artículos almacenados en la lista.
-# El parámetro "response_model" especifica que la respuesta será una lista de objetos "Orden".
-@app.get("/ordenes", response_model=List[Orden])
-async def leer_ordenes():
-    return ordenes
+@app.delete("/menu/{item_id}")
+def delete_menu_item(item_id: int):
+    """Eliminar un ítem del menú por ID."""
+    global menu_db
+    menu_db = [item for item in menu_db if item.id != item_id]
+    return {"message": "Ítem eliminado exitosamente"}
 
-# Ruta para crear un nuevo artículo.
-# El parámetro "response_model" especifica que la respuesta será un objeto "Orden".
-# ES
-@app.post("/ordenes", response_model=Orden)
-async def crear_orden(orden: Orden):
-    ordenes.append(orden)  # Agrega el artículo a la lista.
-    return orden
+# Rutas para gestión de Órdenes
+@app.get("/orders/", response_model=List[Order])
+def get_orders():
+    """Obtener todas las órdenes."""
+    return order_db
 
-# Ruta para actualizar una orden existente por su ID.
-# El parámetro "response_model" especifica que la respuesta será un objeto "Orden".
-@app.put("/ordenes/{orden_id}", response_model=Orden)
-async def actualizar_orden(orden_id: int, orden: Orden):
-    ordenes[orden_id] = orden  # Actualiza la orden en la lista.
-    return orden
+@app.post("/orders/", response_model=Order)
+def create_order(order: Order):
+    """Crear una nueva orden."""
+    # Calcular total con base en los ítems del menú
+    total = 0
+    for item_id in order.items:
+        item = next((item for item in menu_db if item.id == item_id), None)
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
+        total += item.price
+    order.total = total
+    order_db.append(order)
+    return order
 
-# Ruta para eliminar una orden por su ID.
-# No se especifica "response_model" ya que no se devuelve ningún objeto en la respuesta.
-# Este metodo elimina una orden por su ID.
-@app.delete("/ordenes/{orden_id}")
-async def eliminar_orden(orden_id: int):
-    del ordenes[orden_id]  # Elimina el item de la lista.
-    return {"mensaje": "Orden eliminada"}  # Devuelve un mensaje informativo.
+@app.put("/orders/{order_id}")
+def update_order_status(order_id: int, status: str):
+    """Actualizar el estado de una orden."""
+    for order in order_db:
+        if order.id == order_id:
+            order.status = status
+            return order
+    raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+# Ruta de bienvenida
+@app.get("/")
+def read_root():
+    return {"message": "Bienvenido a la API de Come en Casa"}

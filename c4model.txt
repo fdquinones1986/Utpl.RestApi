@@ -1,64 +1,58 @@
-workspace "Plataforma de comercio electronico" {
+workspace "Come en Casa" "Plataforma de gestión de pedidos de Come en Casa" {
 
     !identifiers hierarchical
     
-    description "Una API para gestionar productos"
+    description "Una API para gestionar almuerzos, clientes y pedidos del restaurante 'Come en Casa'"
     
     model {
-        pCliente = person "Usuario final"
-        pAdministrador = person "Administrador del comercio"
-        sErp = softwareSystem "ERP EMPRESARIAL"
-        ssProductos = softwareSystem "Plataforma de gestión de comercio" {
+        pCliente = person "Cliente"
+        pAdministrador = person "Administrador del restaurante"
+        
+        ssPedidos = softwareSystem "Plataforma de gestión de pedidos de Come en Casa" {
             
-            
-            wepAppGestion = container "Web de gestión" {
+            appWeb = container "Frontend (futuro)" {
                 tags "AppWeb"
-                technology "SPA Angular 16"
-                description "Sitio web para la administración de parámertros del sistema"
+                technology "React.js"
+                description "Interfaz de usuario para clientes y administradores (en desarrollo futuro)"
             }
             
-            wepAppCompras = container "Web de compras" {
-                tags "AppWeb"
-                technology "SPA Angular 16"
-                description "Sitio web para solicitar ordenes"
+            apiPedidos = container "API de Pedidos" {
+                tags "API"
+                technology "Python FastAPI"
+                description "API REST para la gestión de almuerzos, clientes y pedidos"
+
+                gestionAlmuerzos = component "Gestión de Almuerzos" "Maneja operaciones CRUD para los almuerzos." "FastAPI / Python"
+                gestionClientes = component "Gestión de Clientes" "Maneja operaciones CRUD para los clientes." "FastAPI / Python"
+                gestionPedidos = component "Gestión de Pedidos" "Maneja operaciones CRUD para los pedidos." "FastAPI / Python"
+                autenticacion = component "Autenticación" "Gestiona el acceso seguro con tokens." "FastAPI / Python"
             }
             
-            apiCompras = container "Api de compras" {
-                tags "Api"
-                technology "Python 3"
-                description "API REST para la consulta y envío de información a la base de datos"
-                seguridadComponent = component "Componente de Seguridad" "Provides functionality related to signing in, changing passwords, etc." "Fast Security / Python 3"
-                emailComponent = component "E-mail Component" "Envia notificaciones a los clientes" "Python Email"
-                telegramComponent = component "Telegram Component" "Envia notificaciones a los clientes por telegram" "Python Notified"
-            }
-            
-            db = container "Base de datos" {
+            dbPedidos = container "Base de Datos" {
                 tags "Database"
-                technology "Oracle 20g"
+                technology "PostgreSQL"
+                description "Almacena almuerzos, clientes y pedidos del restaurante"
             }
         }
 
-        pCliente -> ssProductos.wepAppCompras "Interactúa con la app para crear, leer, actualizar y eliminar órdenes"
-        pAdministrador -> ssProductos.wepAppGestion "Configura la API y monitorea su funcionamiento"
-        sErp -> ssProductos.apiCompras "Interactúa con la app para gestion de inventario"
-        
-        ssProductos.apiCompras -> ssProductos.db "Lee y escribe informacion a"
-        ssProductos.wepAppGestion -> ssProductos.apiCompras "Lee / escribe a " "https"
-        ssProductos.wepAppCompras -> ssProductos.apiCompras "Lee / escribe a " "https"
+        // Relaciones
+        pCliente -> ssPedidos.appWeb "Consulta menú y realiza pedidos"
+        pAdministrador -> ssPedidos.appWeb "Gestiona almuerzos, clientes y pedidos"
+        ssPedidos.apiPedidos -> ssPedidos.dbPedidos "Lee y escribe información a"
+        ssPedidos.appWeb -> ssPedidos.apiPedidos "Envía solicitudes para interactuar con la API" "https"
     }
 
     views {
-        systemContext ssProductos {
+        systemContext ssPedidos {
             include *
             autolayout lr
         }
 
-        container ssProductos {
+        container ssPedidos {
             include *
             autolayout lr
         }
         
-        component ssProductos.apiCompras {
+        component ssPedidos.apiPedidos {
             include *
             autolayout lr
         }
@@ -68,21 +62,19 @@ workspace "Plataforma de comercio electronico" {
                 color #ffffff
             }
             element "Person" {
-                background #741eba
+                background #20dbd8
                 shape person
             }
             element "Software System" {
-                background #8723d9
+                background #20dbd8
             }
             element "Container" {
-                background #9a28f8
+                background #20dbd8
             }
             element "Database" {
                 shape cylinder
             }
         }
-        
-        
     }
 
     configuration {

@@ -1,5 +1,4 @@
 fastapi==0.95.2
 uvicorn==0.22.0
-SQLAlchemy==2.0.12
 sqlmodel==0.0.22
 python-dotenv==1.0.1

@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
-import os
-import uvicorn
+
 
 # Crear instancia de FastAPI
 app = FastAPI()
@@ -73,8 +72,7 @@ def create_order(order: Order):
     for item_id in order.items:
         item = next((item for item in menu_db if item.id == item_id), None)
         if not item:
-            raise HTTPException(status_code=404, detail=f"Item con ID {
-                                item_id} no encontrado")
+            raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
         total += item.price
     order.total = total
     order_db.append(order)
@@ -97,8 +95,3 @@ def update_order_status(order_id: int, order_i: OrderStatus):
 def read_root():
     return {"message": "Bienvenido a la API de Come en Casa"}
 
-#Configuración para Render
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)

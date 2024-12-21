@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "previewLimit": 50,
+            "server": "dpg-cth2obhu0jms73fv33bg-a.oregon-postgres.render.com",
+            "port": 5432,
+            "askForPassword": true,
+            "driver": "PostgreSQL",
+            "name": "conexioncomeencasa",
+            "database": "dbapicomeencasa",
+            "username": "usercomeencasa"
+        }
+    ]
+}

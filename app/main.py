@@ -1,36 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import List
+from app.models import MenuItem, Order, OrderStatus # Importar modelos MenuItem, Order y OrderStatus
 
+from sqlmodel import Session, select
+from app.db import init_db, get_session
 
 # Crear instancia de FastAPI
 app = FastAPI()
 
-# Modelos Pydantic para validación de datos
+# Inicializar base de datos al iniciar la aplicación
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
-
-class MenuItem(BaseModel):
-    id: int
-    name: str
-    price: float
-    description: str
-
-
-class Order(BaseModel):
-    id: int
-    items: List[int]  # Lista de IDs de los elementos del menú
-    total: float
-    customer_name: str
-    status: str = "pending"
-
-
-class OrderStatus(BaseModel):
-    status: str = "pending"
-
-
-# Base de datos simulada
-menu_db = []
-order_db = []
 
 # Rutas para gestión de Menú
 
@@ -59,23 +42,28 @@ def delete_menu_item(item_id: int):
 
 
 @app.get("/orders/", response_model=List[Order])
-def get_orders():
+def get_orders(session: Session = Depends(get_session)):
     """Obtener todas las órdenes."""
-    return order_db
+    resultItems = session.exec(select(Order)).all()
+    return resultItems
 
 
 @app.post("/orders/", response_model=Order)
-def create_order(order: Order):
+def create_order(order: Order, session: Session = Depends(get_session)):
     """Crear una nueva orden."""
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+
     # Calcular total con base en los ítems del menú
-    total = 0
-    for item_id in order.items:
-        item = next((item for item in menu_db if item.id == item_id), None)
-        if not item:
-            raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
-        total += item.price
-    order.total = total
-    order_db.append(order)
+    #total = 0
+    #for item_id in order.items:
+    #    item = next((item for item in menu_db if item.id == item_id), None)
+    #    if not item:
+    #        raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
+    #    total += item.price
+    #order.total = total
+    #order_db.append(order)
     return order
 
 

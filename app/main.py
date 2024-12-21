@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
+import os
+import uvicorn
 
 # Crear instancia de FastAPI
 app = FastAPI()
@@ -94,3 +96,9 @@ def update_order_status(order_id: int, order_i: OrderStatus):
 @app.get("/")
 def read_root():
     return {"message": "Bienvenido a la API de Come en Casa"}
+
+#Configuración para Render
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

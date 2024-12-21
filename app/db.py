@@ -1,8 +1,12 @@
 import os
-
+from dotenv import load_dotenv
 from sqlmodel import create_engine, SQLModel, Session
 
-DATABASE_URL = "postgresql://user_orden:bATZUCQjYguLRZm9gIUXNX3QtNmQle36@dpg-ctg9eqi3esus73aiciag-a.oregon-postgres.render.com/ordenes_t5t9"
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
+
+# Obtener la URL de la base de datos desde las variables de entorno
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL, echo=True)
 

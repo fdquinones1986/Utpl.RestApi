@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from pydantic import BaseModel
-from typing import List
+from typing import List, Annotated
 
 from app.models import Orden, OrdenActualizacion
 from sqlmodel import Session, select
 from app.db import init_db, get_session
+
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+security = HTTPBasic()
 
 app = FastAPI()
 
@@ -23,6 +26,13 @@ def on_startup():
 @app.get('/')
 def bienvenida():
     return {'mensaje': 'Welcome a mi aplicación FastAPI Utpl 2028'}
+
+# Ruta para obtener el usuario actual.
+
+
+@app.get("/users/me")
+def read_current_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+    return {"username": credentials.username, "password": credentials.password}
 
 # Ruta para obtener todos los artículos almacenados en la lista.
 # El parámetro "response_model" especifica que la respuesta será una lista de objetos "Orden".

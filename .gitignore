@@ -1,2 +1,5 @@
 .pyc
 app/__pycache__/main.cpython-311.pyc
+venv/
+.exe
+passwords.txt

@@ -25,23 +25,29 @@ def on_startup():
 
 
 @app.get("/menu/", response_model=List[MenuItem])
-def get_menu():
+def get_menu(session: Session = Depends(get_session)):
     """Obtener todos los ítems del menú."""
-    return menu_db
+    menu_items = session.exec(select(MenuItem)).all()
+    return menu_items
 
 
 @app.post("/menu/", response_model=MenuItem)
-def add_menu_item(item: MenuItem):
+def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     """Añadir un ítem al menú."""
-    menu_db.append(item)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
     return item
 
 
 @app.delete("/menu/{item_id}")
-def delete_menu_item(item_id: int):
+def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
     """Eliminar un ítem del menú por ID."""
-    global menu_db
-    menu_db = [item for item in menu_db if item.id != item_id]
+    item = session.get(MenuItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Ítem no encontrado")
+    session.delete(item)
+    session.commit()
     return {"message": "Ítem eliminado exitosamente"}
 
 

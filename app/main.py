@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi import FastAPI, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import List
@@ -10,8 +12,6 @@ from app.db import init_db, get_session
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 security = HTTPBasic()
 
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,14 +27,16 @@ app = FastAPI(lifespan=lifespan)
 # Rutas para gestión de Menú
 
 
-@app.get("/menu/", response_model=List[MenuItem])# Ruta para obtener todos los ítems del menú
+# Ruta para obtener todos los ítems del menú
+@app.get("/menu/", response_model=List[MenuItem])
 def get_menu(session: Session = Depends(get_session)):
     """Obtener todos los ítems del menú desde la base de datos."""
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
 
 
-@app.post("/menu/", response_model=MenuItem)# Ruta para añadir un ítem al menú
+# Ruta para añadir un ítem al menú
+@app.post("/menu/", response_model=MenuItem)
 def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     """Añadir un ítem al menú."""
     session.add(item)
@@ -43,7 +45,7 @@ def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     return item
 
 
-@app.delete("/menu/{item_id}")# Ruta para eliminar un ítem del menú
+@app.delete("/menu/{item_id}")  # Ruta para eliminar un ítem del menú
 def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
     """Eliminar un ítem del menú por ID."""
     item = session.get(MenuItem, item_id)

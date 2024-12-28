@@ -24,14 +24,14 @@ def on_startup():
 # Rutas para gestión de Menú
 
 
-@app.get("/menu/", response_model=List[MenuItem])
+@app.get("/menu/", response_model=List[MenuItem])# Ruta para obtener todos los ítems del menú
 def get_menu(session: Session = Depends(get_session)):
-    """Obtener todos los ítems del menú."""
+    """Obtener todos los ítems del menú desde la base de datos."""
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
 
 
-@app.post("/menu/", response_model=MenuItem)
+@app.post("/menu/", response_model=MenuItem)# Ruta para añadir un ítem al menú
 def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     """Añadir un ítem al menú."""
     session.add(item)
@@ -40,7 +40,7 @@ def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     return item
 
 
-@app.delete("/menu/{item_id}")
+@app.delete("/menu/{item_id}")# Ruta para eliminar un ítem del menú
 def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
     """Eliminar un ítem del menú por ID."""
     item = session.get(MenuItem, item_id)

@@ -1,15 +1,21 @@
 from fastapi import FastAPI, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import List
-from app.models import MenuItem, Order, OrderStatus # Importar modelos MenuItem, Order y OrderStatus
+# Importar modelos MenuItem, Order y OrderStatus
+from app.models import MenuItem, Order, OrderStatus
 
 from sqlmodel import Session, select
 from app.db import init_db, get_session
+
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+security = HTTPBasic()
 
 # Crear instancia de FastAPI
 app = FastAPI()
 
 # Inicializar base de datos al iniciar la aplicación
+
+
 @app.on_event("startup")
 def on_startup():
     init_db()
@@ -38,8 +44,8 @@ def delete_menu_item(item_id: int):
     menu_db = [item for item in menu_db if item.id != item_id]
     return {"message": "Ítem eliminado exitosamente"}
 
-# Rutas para gestión de Órdenes
 
+# Rutas para gestión de Órdenes
 
 @app.get("/orders/", response_model=List[Order])
 def get_orders(session: Session = Depends(get_session)):
@@ -56,25 +62,31 @@ def create_order(order: Order, session: Session = Depends(get_session)):
     session.refresh(order)
 
     # Calcular total con base en los ítems del menú
-    #total = 0
-    #for item_id in order.items:
+    # total = 0
+    # for item_id in order.items:
     #    item = next((item for item in menu_db if item.id == item_id), None)
     #    if not item:
     #        raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
     #    total += item.price
-    #order.total = total
-    #order_db.append(order)
+    # order.total = total
+    # order_db.append(order)
     return order
 
 
 @app.put("/orders/{order_id}")
-def update_order_status(order_id: int, order_i: OrderStatus):
+def update_order_status(order_id: int, order_i: OrderStatus, session: Session = Depends(get_session)):
     """Actualizar el estado de una orden."""
-    for order in order_db:
-        if order.id == order_id:
-            order.status = order_i.status
-            return order
-    raise HTTPException(status_code=404, detail="Orden no encontrada")
+    itemDB = session.get(Order, order_id)
+    if itemDB is None:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    if order_i.precio is not None:
+        itemDB.precio = order_i.precio
+    if order_i.cantidad is not None:
+        itemDB.cantidad = order_i.cantidad
+    session.add(itemDB)
+    session.commit()
+    session.refresh(itemDB)
+    return order_i
 
 # Ruta de bienvenida
 
@@ -82,4 +94,3 @@ def update_order_status(order_id: int, order_i: OrderStatus):
 @app.get("/")
 def read_root():
     return {"message": "Bienvenido a la API de Come en Casa"}
-

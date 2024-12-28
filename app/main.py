@@ -10,15 +10,18 @@ from app.db import init_db, get_session
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 security = HTTPBasic()
 
-# Crear instancia de FastAPI
-app = FastAPI()
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-# Inicializar base de datos al iniciar la aplicación
-
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Inicializa la base de datos al iniciar la app
     init_db()
+    yield
+    # Puedes añadir lógica de limpieza aquí (opcional)
+
+# Crea la instancia de FastAPI con el ciclo de vida
+app = FastAPI(lifespan=lifespan)
 
 
 # Rutas para gestión de Menú

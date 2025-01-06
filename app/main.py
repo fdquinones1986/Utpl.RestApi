@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
@@ -6,8 +6,7 @@ from app.models import Orden, OrdenActualizacion
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-security = HTTPBasic()
+from app.security import verification
 
 app = FastAPI()
 
@@ -27,19 +26,12 @@ def on_startup():
 def bienvenida():
     return {'mensaje': 'Welcome a mi aplicación FastAPI Utpl 2028'}
 
-# Ruta para obtener el usuario actual.
-
-
-@app.get("/users/me")
-def read_current_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
-    return {"username": credentials.username, "password": credentials.password}
-
 # Ruta para obtener todos los artículos almacenados en la lista.
 # El parámetro "response_model" especifica que la respuesta será una lista de objetos "Orden".
 
 
 @app.get("/ordenes", response_model=List[Orden])
-async def leer_ordenes(session: Session = Depends(get_session)):
+async def leer_ordenes(session: Session = Depends(get_session), Verification=Depends(verification)):
     resultItems = session.exec(select(Orden)).all()
     return resultItems
 
@@ -49,7 +41,7 @@ async def leer_ordenes(session: Session = Depends(get_session)):
 
 
 @app.post("/ordenes", response_model=Orden)
-async def crear_orden(orden: Orden, session: Session = Depends(get_session)):
+async def crear_orden(orden: Orden, session: Session = Depends(get_session), Verification=Depends(verification)):
     session.add(orden)
     session.commit()
     session.refresh(orden)
@@ -61,7 +53,7 @@ async def crear_orden(orden: Orden, session: Session = Depends(get_session)):
 
 
 @app.put("/ordenes/{orden_id}", response_model=Orden)
-async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Session = Depends(get_session)):
+async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
@@ -80,7 +72,7 @@ async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Se
 
 
 @app.delete("/ordenes/{orden_id}")
-async def eliminar_orden(orden_id: int, session: Session = Depends(get_session)):
+async def eliminar_orden(orden_id: int, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
         raise HTTPException(status_code=404, detail="Orden no encontrada")

@@ -2,17 +2,57 @@ from fastapi import FastAPI, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
-from app.models import Orden, OrdenActualizacion
+from app.models import Orden, OrdenActualizacion, GetUser, PostUser, User
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
 from app.security import verification
+
+from app.utils.auth import decodeJWT, get_user, create_user, create_access_token, create_refresh_token, JWTBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import date, datetime, timedelta, time
+
+from app.utils.passwords import verify_pwd
 
 app = FastAPI()
 
 
 # Lista vacía para almacenar los artículos creados.
 ordenes = []
+
+
+def get_user_by_id(user_id: int, db: Session) -> User:
+    """
+    Get a user by ID
+    """
+    return db.query(User).filter(User.id == user_id).first()
+    # return db.exec(User).filter(User.id == user_id).first()
+
+
+def get_current_user(token: str = Depends(JWTBearer()), session: Session = Depends(get_session)) -> User:
+    """
+    Get current user from JWT token
+    """
+    payload = decodeJWT(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token or expired token",
+        )
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token or expired token",
+        )
+    # Assuming you have a function to get user by id from the database
+    user = get_user_by_id(user_id, session)  # Implement this function
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user
 
 
 @app.on_event("startup")
@@ -80,3 +120,50 @@ async def eliminar_orden(orden_id: int, session: Session = Depends(get_session),
     session.commit()
 
     return {"mensaje": "Orden eliminada"}  # Devuelve un mensaje informativo.
+
+
+# Register new user using email, username, password
+@app.post("/register", response_model=GetUser)
+def register_user(payload: PostUser, session: Session = Depends(get_session)):
+
+    if not payload.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please add Email",
+        )
+    user = get_user(session, payload.email)
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with email {payload.email} already exists",
+        )
+    user = create_user(session, payload)
+    print(user)
+
+    return user
+
+
+@app.post("/login")
+def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
+    """
+    Login user based on email and password
+    """
+    user = get_user(db, form_data.username)
+    if not user or not verify_pwd(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+        )
+
+    token = create_access_token(user.id, timedelta(minutes=30))
+    refresh = create_refresh_token(user.id, timedelta(minutes=1008))
+
+    return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}
+
+
+@app.get("/users/me", response_model=GetUser)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    Get current user details
+    """
+    return current_user

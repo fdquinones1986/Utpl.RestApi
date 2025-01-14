@@ -7,7 +7,7 @@ security = HTTPBasic()
 users = {
     "admin": {
         "password": "ContraseñaSegura123",
-        "token": "32123",
+        "token": "",
         "priviliged": True
     }
 }

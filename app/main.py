@@ -1,16 +1,15 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, status
 from pydantic import BaseModel
-from typing import List
+from typing import List, Annotated
 # Importar modelos MenuItem, Order y OrderStatus
 from app.models import MenuItem, Order, OrderStatus
 
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-security = HTTPBasic()
+from app.security import verification
 
 
 @asynccontextmanager
@@ -23,13 +22,14 @@ async def lifespan(app: FastAPI):
 # Crea la instancia de FastAPI con el ciclo de vida
 app = FastAPI(lifespan=lifespan)
 
+def bienvenida():
+    return {'mensaje': 'Bienvenidos a la API de Come en Casa'}
 
 # Rutas para gestión de Menú
 
-
 # Ruta para obtener todos los ítems del menú
 @app.get("/menu/", response_model=List[MenuItem])
-def get_menu(session: Session = Depends(get_session)):
+def get_menu(session: Session = Depends(get_session), Verification=Depends(verification)):
     """Obtener todos los ítems del menú desde la base de datos."""
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
@@ -37,7 +37,7 @@ def get_menu(session: Session = Depends(get_session)):
 
 # Ruta para añadir un ítem al menú
 @app.post("/menu/", response_model=MenuItem)
-def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
+def add_menu_item(item: MenuItem, session: Session = Depends(get_session), Verification=Depends(verification)):
     """Añadir un ítem al menú."""
     session.add(item)
     session.commit()
@@ -46,7 +46,7 @@ def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
 
 
 @app.delete("/menu/{item_id}")  # Ruta para eliminar un ítem del menú
-def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
+def delete_menu_item(item_id: int, session: Session = Depends(get_session), Verification=Depends(verification)):
     """Eliminar un ítem del menú por ID."""
     item = session.get(MenuItem, item_id)
     if not item:
@@ -59,14 +59,14 @@ def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
 # Rutas para gestión de Órdenes
 
 @app.get("/orders/", response_model=List[Order])
-def get_orders(session: Session = Depends(get_session)):
+def get_orders(session: Session = Depends(get_session), Verification=Depends(verification)):
     """Obtener todas las órdenes."""
     resultItems = session.exec(select(Order)).all()
     return resultItems
 
 
 @app.post("/orders/", response_model=Order)
-def create_order(order: Order, session: Session = Depends(get_session)):
+def create_order(order: Order, session: Session = Depends(get_session), Verification=Depends(verification)):
     """Crear una nueva orden."""
     session.add(order)
     session.commit()
@@ -85,7 +85,7 @@ def create_order(order: Order, session: Session = Depends(get_session)):
 
 
 @app.put("/orders/{order_id}")
-def update_order_status(order_id: int, order_i: OrderStatus, session: Session = Depends(get_session)):
+def update_order_status(order_id: int, order_i: OrderStatus, session: Session = Depends(get_session), Verification=Depends(verification)):
     """Actualizar el estado de una orden."""
     itemDB = session.get(Order, order_id)
     if itemDB is None:

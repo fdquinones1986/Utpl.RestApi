@@ -11,6 +11,8 @@ from sqlmodel import Session, select
 from app.db import init_db, get_session
 
 from app.security import verification
+#Trabajar con telegra
+from app.utils.telegram_service import send_message_telegram
 
 
 @asynccontextmanager
@@ -67,7 +69,7 @@ def get_orders(session: Session = Depends(get_session), Verification=Depends(ver
 
 
 @app.post("/orders/", response_model=Order)
-def create_order(order: Order, session: Session = Depends(get_session), Verification=Depends(verification)):
+async def create_order(order: Order, session: Session = Depends(get_session), Verification=Depends(verification)):
     """Crear una nueva orden."""
     session.add(order)
     session.commit()
@@ -89,6 +91,8 @@ def create_order(order: Order, session: Session = Depends(get_session), Verifica
     session.add(order)
     session.commit()
     session.refresh(order)
+
+    await send_message_telegram(f"Se ha creado una nueva orden con el id: {order.id} y precio: {order.total} para el cliente: {order.customer_name} con el esatdo del pedido: {order.status}")
 
     return order
 

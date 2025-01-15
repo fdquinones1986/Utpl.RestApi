@@ -4,3 +4,4 @@ app/__pycache__/main.cpython-311.pyc
 .exe
 passwords.txt
 app/__pycache__/main.cpython-311.pyc
+.env

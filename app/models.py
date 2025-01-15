@@ -14,7 +14,7 @@ class MenuItem(SQLModel, table=True):
 
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    # items: List[int]  # Lista de IDs de los elementos del menú
+    #items: List[int]  # Lista de IDs de los elementos del menú
     total: float
     customer_name: str
     status: str = "pending"

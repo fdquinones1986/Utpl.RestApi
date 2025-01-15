@@ -14,6 +14,12 @@ from datetime import date, datetime, timedelta, time
 
 from app.utils.passwords import verify_pwd
 
+# para trabajar con telegram
+from app.utils.telegram_service import send_message_telegram
+
+# para trabajar con email
+from app.utils.email_service import send_email
+
 app = FastAPI()
 
 
@@ -86,13 +92,16 @@ async def crear_orden(orden: Orden, session: Session = Depends(get_session), Ver
     session.commit()
     session.refresh(orden)
 
+    await send_message_telegram(f"Se ha creado una nueva orden con el id: {orden.id} y precio: {orden.precio} de nombre: {orden.producto}")
+    send_email("Confirmación de orden", f"Se ha creado una nueva orden con el id: {orden.id} y precio: {orden.precio} de nombre: {orden.producto}", [
+               "fdquinones@utpl.edu.ec"])
     return orden
 
 # Ruta para actualizar una orden existente por su ID.
 # El parámetro "response_model" especifica que la respuesta será un objeto "Orden".
 
 
-@app.put("/ordenes/{orden_id}", response_model=Orden)
+@ app.put("/ordenes/{orden_id}", response_model=Orden)
 async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
@@ -111,7 +120,7 @@ async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Se
 # Este metodo elimina una orden por su ID.
 
 
-@app.delete("/ordenes/{orden_id}")
+@ app.delete("/ordenes/{orden_id}")
 async def eliminar_orden(orden_id: int, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
@@ -123,7 +132,7 @@ async def eliminar_orden(orden_id: int, session: Session = Depends(get_session),
 
 
 # Register new user using email, username, password
-@app.post("/register", response_model=GetUser)
+@ app.post("/register", response_model=GetUser)
 def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
     if not payload.email:
@@ -143,7 +152,7 @@ def register_user(payload: PostUser, session: Session = Depends(get_session)):
     return user
 
 
-@app.post("/login")
+@ app.post("/login")
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
     """
     Login user based on email and password
@@ -161,7 +170,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}
 
 
-@app.get("/users/me", response_model=GetUser)
+@ app.get("/users/me", response_model=GetUser)
 def read_users_me(current_user: User = Depends(get_current_user)):
     """
     Get current user details

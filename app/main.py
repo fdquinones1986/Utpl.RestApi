@@ -73,15 +73,23 @@ def create_order(order: Order, session: Session = Depends(get_session), Verifica
     session.commit()
     session.refresh(order)
 
-    # Calcular total con base en los ítems del menú
-    # total = 0
-    # for item_id in order.items:
-    #    item = next((item for item in menu_db if item.id == item_id), None)
-    #    if not item:
-    #        raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
-    #    total += item.price
-    # order.total = total
-    # order_db.append(order)
+   # Calcular total con base en los ítems del menú
+    total = 0
+    for item_id in order.items:
+        # Buscar el ítem en el menú
+        item = session.query(MenuItem).filter(MenuItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
+        total += item.price
+
+    # Asignar el total al pedido
+    order.total = total
+
+    # Agregar y guardar en la base de datos
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+
     return order
 
 

@@ -76,7 +76,7 @@ async def create_order(order: Order, session: Session = Depends(get_session), Ve
     session.refresh(order)
 
    # Calcular total con base en los ítems del menú
-    total = 0
+    '''total = 0
     for item_id in order.items:
         # Buscar el ítem en el menú
         item = session.query(MenuItem).filter(MenuItem.id == item_id).first()
@@ -85,14 +85,14 @@ async def create_order(order: Order, session: Session = Depends(get_session), Ve
         total += item.price
 
     # Asignar el total al pedido
-    order.total = total
+    order.total = total'''
 
     # Agregar y guardar en la base de datos
     session.add(order)
     session.commit()
     session.refresh(order)
 
-    await send_message_telegram(f"Se ha creado una nueva orden con el id: {order.id} y precio: {order.total} para el cliente: {order.customer_name} con el esatdo del pedido: {order.status}")
+    await send_message_telegram(f"Se ha creado una nueva orden con el id: {order.id} y precio: {order.total} para el cliente: {order.customer_name} con el estado del pedido: {order.status}")
 
     return order
 

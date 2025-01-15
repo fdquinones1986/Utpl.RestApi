@@ -11,8 +11,12 @@ from sqlmodel import Session, select
 from app.db import init_db, get_session
 
 from app.security import verification
-#Trabajar con telegra
+
+# Trabajar con telegram
 from app.utils.telegram_service import send_message_telegram
+
+# Trabajar con email
+from app.utils.email_service import send_email
 
 
 @asynccontextmanager
@@ -25,12 +29,15 @@ async def lifespan(app: FastAPI):
 # Crea la instancia de FastAPI con el ciclo de vida
 app = FastAPI(lifespan=lifespan)
 
+
 def bienvenida():
     return {'mensaje': 'Bienvenidos a la API de Come en Casa'}
 
 # Rutas para gestión de Menú
 
 # Ruta para obtener todos los ítems del menú
+
+
 @app.get("/menu/", response_model=List[MenuItem])
 def get_menu(session: Session = Depends(get_session), Verification=Depends(verification)):
     """Obtener todos los ítems del menú desde la base de datos."""
@@ -93,7 +100,8 @@ async def create_order(order: Order, session: Session = Depends(get_session), Ve
     session.refresh(order)
 
     await send_message_telegram(f"Se ha creado una nueva orden con el id: {order.id} y precio: {order.total} para el cliente: {order.customer_name} con el estado del pedido: {order.status}")
-
+    send_email("Confirmación de orden", f"Se ha creado una nueva orden con el id: {order.id} y precio: {order.total} para el cliente: {order.customer_name} con el estado del pedido: {order.status}", [
+               "nacalvas@utpl.edu.ec"])
     return order
 
 

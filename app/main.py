@@ -20,6 +20,9 @@ from app.utils.telegram_service import send_message_telegram
 # para trabajar con email
 from app.utils.email_service import send_email
 
+# para trabajar con fastapi versioning
+from fastapi_versioning import VersionedFastAPI, version
+
 app = FastAPI()
 
 
@@ -69,6 +72,7 @@ def on_startup():
 
 
 @app.get('/')
+@version(1, 0)
 def bienvenida():
     return {'mensaje': 'Welcome a mi aplicación FastAPI Utpl 2028'}
 
@@ -77,6 +81,7 @@ def bienvenida():
 
 
 @app.get("/ordenes", response_model=List[Orden])
+@version(2, 0)
 async def leer_ordenes(session: Session = Depends(get_session), Verification=Depends(verification)):
     resultItems = session.exec(select(Orden)).all()
     return resultItems
@@ -176,3 +181,6 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     Get current user details
     """
     return current_user
+
+
+app = VersionedFastAPI(app)

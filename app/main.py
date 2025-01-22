@@ -1,16 +1,24 @@
+from fastapi import FastAPI, Depends, HTTPException, Query, status
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi import FastAPI, HTTPException, Depends, Query, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
-# Importar modelos MenuItem, Order y OrderStatus
-from app.models import MenuItem, Order, OrderStatus
+
+# Importar modelos MenuItem, Order, OrderStatus y User
+from app.models import MenuItem, Order, OrderStatus, OrderItemLink, GetUser, PostUser, User
 
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
 from app.security import verification
+
+#Autenticacion y autorizacion JWT y oauth2
+from app.utils.auth import decodeJWT, get_user, create_user, create_access_token, create_refresh_token, JWTBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import date, datetime, timedelta, time
+
+from app.utils.passwords import verify_pwd
 
 # Trabajar con telegram
 from app.utils.telegram_service import send_message_telegram
@@ -24,21 +32,127 @@ async def lifespan(app: FastAPI):
     # Inicializa la base de datos al iniciar la app
     init_db()
     yield
-    # Puedes añadir lógica de limpieza aquí (opcional)
+########### Puedes añadir lógica de limpieza aquí (opcional)
+tags_metadata = [
+    {
+        "name": "menu",
+        "description": "Operaciones relacionadas con el menú de Come en Casa",
+    },
+    {
+        "name": "orders",
+        "description": "Operaciones relacionadas con las órdenes de Come en Casa",
+    },
+    {
+        "name": "users",
+        "description": "Operaciones relacionadas con los usuarios de Come en Casa",
+    },
+]
 
 # Crea la instancia de FastAPI con el ciclo de vida
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, title="API de Come en Casa", description="API para la gestión de pedidos de Come en Casa",
+              version="0.1.0", contact={"name": "Nicole Calvas", "email":"nacalvas@utpl.edu.ec"}, openapi_tags=tags_metadata)
 
 
 def bienvenida():
     return {'mensaje': 'Bienvenidos a la API de Come en Casa'}
 
+
+# Rutas para gestión de Usuarios
+def get_user_by_id(user_id: int, db: Session) -> User:
+    """
+    Get a user by ID
+    """
+    return db.query(User).filter(User.id == user_id).first()
+    # return db.exec(User).filter(User.id == user_id).first()
+
+
+def get_current_user(token: str = Depends(JWTBearer()), session: Session = Depends(get_session)) -> User:
+    """
+    Get current user from JWT token
+    """
+    payload = decodeJWT(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token or expired token",
+        )
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token or expired token",
+        )
+    # Assuming you have a function to get user by id from the database
+    user = get_user_by_id(user_id, session)  # Implement this function
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
+#Ruta para regitrar un usuario
+@ app.post("/register", response_model=GetUser, tags=["usuarios"])
+def register_user(payload: PostUser, session: Session = Depends(get_session)):
+    if not payload.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please add Email",
+        )
+    user = get_user(session, payload.email)
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with email {payload.email} already exists",
+        )
+    user = create_user(session, payload)
+    print(user)
+    return user
+#Ruta para iniciar sesion
+@ app.post("/login", response_model=GetUser, tags=["usuarios"])
+def login_user(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
+    user = get_user(session, form_data.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect username or password",
+        )
+    if not verify_pwd(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Incorrect username or password",
+        )
+    access_token = create_access_token(user.id)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+#Ruta para obtener todos los usuarios
+@ app.get("/users", response_model=List[GetUser], tags=["usuarios"])
+def get_users(session: Session = Depends(get_session)):
+    users = session.exec(select(User)).all()
+    return users
+#Ruta para obtener eliminar un usuario
+@ app.delete("/users/{user_id}", tags=["usuarios"])
+def delete_user(user_id: int, session: Session = Depends(get_session)):
+    user = get_user_by_id(user_id, session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    session.delete(user)
+    session.commit()
+    return {"message": "User deleted successfully"}
+
+
+
 # Rutas para gestión de Menú
-
 # Ruta para obtener todos los ítems del menú
-
-
-@app.get("/menu/", response_model=List[MenuItem])
+@app.get("/menu/", response_model=List[MenuItem], tags=["menu"])
 def get_menu(session: Session = Depends(get_session), Verification=Depends(verification)):
     """Obtener todos los ítems del menú desde la base de datos."""
     menu_items = session.exec(select(MenuItem)).all()
@@ -76,25 +190,22 @@ def get_orders(session: Session = Depends(get_session), Verification=Depends(ver
 
 
 @app.post("/orders/", response_model=Order)
-async def create_order(order: Order, session: Session = Depends(get_session), Verification=Depends(verification)):
+async def create_order(order_data: dict, session: Session = Depends(get_session)):
     """Crear una nueva orden."""
-    session.add(order)
-    session.commit()
-    session.refresh(order)
+    # Crear un pedido vacío
+    order = Order(customer_name=order_data["customer_name"], status="pending", total=0)
 
-   # Calcular total con base en los ítems del menú
-    '''total = 0
-    for item_id in order.items:
-        # Buscar el ítem en el menú
+    # Asociar los ítems del pedido
+    total = 0
+    for item_id in order_data["items"]:
         item = session.query(MenuItem).filter(MenuItem.id == item_id).first()
         if not item:
             raise HTTPException(status_code=404, detail=f"Item con ID {item_id} no encontrado")
         total += item.price
+        order.items.append(item)
 
-    # Asignar el total al pedido
-    order.total = total'''
-
-    # Agregar y guardar en la base de datos
+    # Asignar el total y guardar
+    order.total = total
     session.add(order)
     session.commit()
     session.refresh(order)

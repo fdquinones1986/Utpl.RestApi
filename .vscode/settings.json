@@ -7,12 +7,12 @@
                 }
             },
             "previewLimit": 50,
-            "server": "dpg-cth2obhu0jms73fv33bg-a.oregon-postgres.render.com",
+            "server": "dpg-cu82r4ij1k6c739r729g-a.oregon-postgres.render.com",
             "port": 5432,
             "askForPassword": true,
             "driver": "PostgreSQL",
-            "name": "conexioncomeencasa",
-            "database": "dbapicomeencasa",
+            "name": "Utpl_comeencasa",
+            "database": "dbapicomeencasa_sznu",
             "username": "usercomeencasa"
         }
     ]

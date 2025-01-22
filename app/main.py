@@ -23,7 +23,31 @@ from app.utils.email_service import send_email
 # para trabajar con fastapi versioning
 from fastapi_versioning import VersionedFastAPI, version
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "usuarios",
+        "description": "Operaciones con usuarios. El **login** logica esta disponible aqui.",
+    },
+    {
+        "name": "ordenes",
+        "description": "Administracion de ordenes.",
+        "externalDocs": {
+            "description": "Items external docs",
+            "url": "https://fastapi.tiangolo.com/",
+        },
+    },
+]
+
+app = FastAPI(title="FastAPI Utpl 2025",
+              description="API para el manejo de ordenes de compra",
+              version="1.0.0",
+              contact={
+                    "name": "Felipe Quinones",
+                    "url": "https://www.utpl.edu.ec/",
+                    "email": "fdquinones@utpl.edu.ec"
+              },
+              openapi_tags=tags_metadata
+              )
 
 
 # Lista vacía para almacenar los artículos creados.
@@ -72,7 +96,6 @@ def on_startup():
 
 
 @app.get('/')
-@version(1, 0)
 def bienvenida():
     return {'mensaje': 'Welcome a mi aplicación FastAPI Utpl 2028'}
 
@@ -80,8 +103,7 @@ def bienvenida():
 # El parámetro "response_model" especifica que la respuesta será una lista de objetos "Orden".
 
 
-@app.get("/ordenes", response_model=List[Orden])
-@version(2, 0)
+@app.get("/ordenes", response_model=List[Orden], tags=["ordenes"])
 async def leer_ordenes(session: Session = Depends(get_session), Verification=Depends(verification)):
     resultItems = session.exec(select(Orden)).all()
     return resultItems
@@ -91,7 +113,7 @@ async def leer_ordenes(session: Session = Depends(get_session), Verification=Dep
 # ES
 
 
-@app.post("/ordenes", response_model=Orden)
+@app.post("/ordenes", response_model=Orden, tags=["ordenes"])
 async def crear_orden(orden: Orden, session: Session = Depends(get_session), Verification=Depends(verification)):
     session.add(orden)
     session.commit()
@@ -106,7 +128,7 @@ async def crear_orden(orden: Orden, session: Session = Depends(get_session), Ver
 # El parámetro "response_model" especifica que la respuesta será un objeto "Orden".
 
 
-@ app.put("/ordenes/{orden_id}", response_model=Orden)
+@ app.put("/ordenes/{orden_id}", response_model=Orden, tags=["ordenes"])
 async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
@@ -125,7 +147,7 @@ async def actualizar_orden(orden_id: int, orden: OrdenActualizacion, session: Se
 # Este metodo elimina una orden por su ID.
 
 
-@ app.delete("/ordenes/{orden_id}")
+@ app.delete("/ordenes/{orden_id}", tags=["ordenes"])
 async def eliminar_orden(orden_id: int, session: Session = Depends(get_session), Verification=Depends(verification)):
     itemDB = session.get(Orden, orden_id)
     if itemDB is None:
@@ -137,7 +159,7 @@ async def eliminar_orden(orden_id: int, session: Session = Depends(get_session),
 
 
 # Register new user using email, username, password
-@ app.post("/register", response_model=GetUser)
+@ app.post("/register", response_model=GetUser, tags=["usuarios"])
 def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
     if not payload.email:
@@ -157,7 +179,7 @@ def register_user(payload: PostUser, session: Session = Depends(get_session)):
     return user
 
 
-@ app.post("/login")
+@ app.post("/login", tags=["usuarios"])
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
     """
     Login user based on email and password
@@ -175,12 +197,9 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}
 
 
-@ app.get("/users/me", response_model=GetUser)
+@ app.get("/users/me", response_model=GetUser, tags=["usuarios"])
 def read_users_me(current_user: User = Depends(get_current_user)):
     """
     Get current user details
     """
     return current_user
-
-
-app = VersionedFastAPI(app)

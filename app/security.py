@@ -3,16 +3,16 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 security = HTTPBasic()
 
-# Usuarios con credenciales y token.
+# Lista de usuarios con sus credenciales y token de autenticación.
 users = {
     "admin": {
-        "password": "Segura123",
+        "password": "Passw0rd123",
         "token": "",
         "priviliged": True
     }
 }
 
-# Autenticar usuario.
+# Función para autenticar a un usuario.
 
 
 def verification(creds: HTTPBasicCredentials = Depends(security)):
@@ -20,11 +20,11 @@ def verification(creds: HTTPBasicCredentials = Depends(security)):
     password = creds.password
 
     if username in users and password == users[username]["password"]:
-        print('Usuario verificado y autenticado')
+        print('Usuario autenticado')
         return True
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales no correctas",
+            detail="Credenciales inválidas",
             headers={"WWW-Authenticate": "Basic"},
         )

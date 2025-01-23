@@ -82,7 +82,7 @@ def get_current_user(token: str = Depends(JWTBearer()), session: Session = Depen
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token or expired token",
         )
-    # Assuming you have a function to get user by id from the database
+    #function to get user by id from the database
     user = get_user_by_id(user_id, session)  # Implement this function
     if not user:
         raise HTTPException(

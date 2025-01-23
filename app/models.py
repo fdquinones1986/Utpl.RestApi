@@ -3,8 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 
 # Clases para el manejo de usuarios
-
-
 class GetUser(BaseModel):
     email: EmailStr
     username: Optional[str]

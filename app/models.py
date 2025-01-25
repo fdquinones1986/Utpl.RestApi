@@ -1,7 +1,39 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, EmailStr
+from datetime import datetime, date
+
 from enum import Enum 
+
+#Clases para el manejo de pedidos
+
+class OrderItemLink(SQLModel, table=True):#Guarda los items de los pedidos
+    order_id: int = Field(foreign_key="order.id", primary_key=True)
+    menu_item_id: int = Field(foreign_key="menuitem.id", primary_key=True)
+
+class MenuItem(SQLModel, table=True): #Guarda los items del menu
+    id: int = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    name: str
+    description: str
+    price: float
+    orders: List["Order"] = Relationship(back_populates="items", link_model=OrderItemLink)
+
+class StatusEnum(str, Enum):
+    pending = "pendiente"
+    processing = "en proceso"
+    completed = "completado"
+    delivered = "entregado"
+    canceled = "cancelado"
+
+class Order(SQLModel, table=True): #Guarda los pedidos
+    id: Optional[int] = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    customer_name: str
+    status: StatusEnum = Field(default=StatusEnum.pending)
+    total: Optional[float] = 0
+    items: List[MenuItem] = Relationship(back_populates="orders", link_model=OrderItemLink)
+    
+
+MenuItem.orders = Relationship(back_populates="items", link_model=OrderItemLink) #Relacion entre menuitem y order
 
 # Clases para el manejo de usuarios
 class GetUser(BaseModel): #Obtener todos los usuarios
@@ -38,6 +70,7 @@ class User(SQLModel, table=True): #Guarda a los usuarios
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
+    phone: int = Field(default=None)
     hashed_password: str
     role: str = Field(default="user")
 
@@ -45,42 +78,4 @@ class User(SQLModel, table=True): #Guarda a los usuarios
 class Token(SQLModel, table=True): #Guarda los tokens
     id: int = Field(primary_key=True, index=True)
     token: str = Field(index=True)
-    user_id: int
-
-
-#Clases para el manejo de pedidos
-
-class OrderItemLink(SQLModel, table=True):#Guarda los items de los pedidos
-    order_id: int = Field(foreign_key="order.id", primary_key=True)
-    menu_item_id: int = Field(foreign_key="menuitem.id", primary_key=True)
-
-class MenuItem(SQLModel, table=True): #Guarda los items del menu
-    id: int = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
-    name: str
-    description: str
-    price: float
-    orders: List["Order"] = Relationship(back_populates="items", link_model=OrderItemLink)
-
-class Order(SQLModel, table=True): #Guarda los pedidos
-    id: Optional[int] = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
-    customer_name: str
-    status: str = "pending"
-    total: Optional[float] = 0
-    items: List[MenuItem] = Relationship(back_populates="orders", link_model=OrderItemLink)
-    
-
-MenuItem.orders = Relationship(back_populates="items", link_model=OrderItemLink) #Relacion entre menuitem y order
-
-class OrderStatus(BaseModel): #Cambia el estado de un pedido
-    status: str 
-
-class StatusEnum(str, Enum):
-    pending = "pendiente"
-    processing = "en proceso"
-    completed = "completado"
-    delivered = "entregado"
-    canceled = "cancelado"
-
-class OrderStatus(BaseModel):
-    status: StatusEnum
-
+    user_id: int = Field(foreign_key="user.id")

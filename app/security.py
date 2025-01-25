@@ -6,7 +6,7 @@ security = HTTPBasic()
 # Lista de usuarios con sus credenciales y token de autenticación.
 users = {
     "admin": {
-        "password": "Passw0rd123",
+        "password": "Password123",
         "token": "",
         "priviliged": True
     }

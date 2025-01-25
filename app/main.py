@@ -6,7 +6,7 @@ from app.models import MenuItem, Order, OrderItemLink, GetUser, PostUser, User
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
-from app.security import verification 
+from app.security import verification
 
 from app.utils.auth import decodeJWT, get_user, create_access_token, create_user, create_refresh_token, JWTBearer
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -22,7 +22,6 @@ from app.utils.email_service import send_email
 
 # para trabajar con fastapi versioning
 from fastapi_versioning import VersionedFastAPI, version
-
 
 
 # Configuración de OAuth2
@@ -53,7 +52,7 @@ tags_metadata = [
 
 # Crea la instancia de FastAPI con el ciclo de vida
 app = FastAPI(title="API de Come en Casa", description="API para la gestión de pedidos de Come en Casa",
-              version="0.1.0", contact={"name": "Nicole Calvas", "email":"nacalvas@utpl.edu.ec"}, openapi_tags=tags_metadata)
+              version="0.1.0", contact={"name": "Nicole Calvas", "email": "nacalvas@utpl.edu.ec"}, openapi_tags=tags_metadata)
 
 
 def get_user_by_id(user_id: int, db: Session) -> User:
@@ -80,7 +79,7 @@ def get_current_user(token: str = Depends(JWTBearer()), session: Session = Depen
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token or expired token",
         )
-    user = get_user_by_id(user_id, session)  
+    user = get_user_by_id(user_id, session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -89,27 +88,30 @@ def get_current_user(token: str = Depends(JWTBearer()), session: Session = Depen
     return user
 
 
-#Comienza API de Come en Casa
+# Comienza API de Come en Casa
 # Inicializa la base de datos al iniciar la aplicación
 @app.on_event("startup")
 def on_startup():
     init_db()
-    
+
 # Ruta de bienvenida
+
+
 @app.get("/", tags=["Welcome"])
 def read_root():
     return {"message": "Bienvenido a la API de Come en Casa"}
 
 
-
 # Gestión de Usuarios
-#Ruta para obtener todos los usuarios
+# Ruta para obtener todos los usuarios
 @app.get("/users", response_model=List[GetUser], tags=["users"])
 def list_users(session: Session = Depends(get_session)):
     users = session.exec(select(User)).all()
     return users
 
-#Ruta para registrar un usuario
+# Ruta para registrar un usuario
+
+
 @app.post("/register", response_model=GetUser, tags=["users"])
 def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
@@ -129,7 +131,9 @@ def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
     return user
 
-#Ruta para iniciar sesión
+# Ruta para iniciar sesión
+
+
 @ app.post("/login", tags=["users"])
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
     """
@@ -147,7 +151,9 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 
     return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}
 
-#Ruta para obtener los detalles del usuario actual
+# Ruta para obtener los detalles del usuario actual
+
+
 @ app.get("/users/me", response_model=GetUser, tags=["users"])
 def read_users_me(current_user: User = Depends(get_current_user)):
     """
@@ -155,7 +161,9 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     """
     return current_user
 
-#Ruta para elminar un usuario
+# Ruta para elminar un usuario
+
+
 @app.delete("/users/{user_id}", tags=["users"])
 def delete_user(user_id: int, session: Session = Depends(get_session)):
     user = session.get(User, user_id)
@@ -166,22 +174,26 @@ def delete_user(user_id: int, session: Session = Depends(get_session)):
     return {"message": "Usuario eliminado correctamente"}
 
 
-
-#Comienza gestión interna restaurante
+# Comienza gestión interna restaurante
 
 # Gestión del Menú
-#obtener todo el menu
+# obtener todo el menu
 @app.get("/menu/", response_model=List[MenuItem], tags=["menu"])
 def get_menu(session: Session = Depends(get_session), Verification=Depends(verification)):
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
 
 # Verificar si necesita esto
-@app.get("/menu/", response_model=List[MenuItem], tags=["menu"])# Verificar si necesita esto
-def list_menu_items(session: Session = Depends(get_session)):# Verificar si necesita esto
-    return get_menu(session)# Verificar si necesita esto
 
-#Ruta para agregar un item al menu
+
+# Verificar si necesita esto
+@app.get("/menu/", response_model=List[MenuItem], tags=["menu"])
+def list_menu_items(session: Session = Depends(get_session)):  # Verificar si necesita esto
+    return get_menu(session)  # Verificar si necesita esto
+
+# Ruta para agregar un item al menu
+
+
 @app.post("/menu/", response_model=MenuItem, tags=["menu"])
 async def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
     session.add(item)
@@ -193,7 +205,9 @@ async def add_menu_item(item: MenuItem, session: Session = Depends(get_session))
                "ncwork.350@outlook.com"])
     return item
 
-#Ruta para eliminar un item del menu
+# Ruta para eliminar un item del menu
+
+
 @app.delete("/menu/{item_id}", tags=["menu"])
 async def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
     item = session.get(MenuItem, item_id)
@@ -209,13 +223,17 @@ async def delete_menu_item(item_id: int, session: Session = Depends(get_session)
 
 # Gestión de Órdenes
 
-#Ruta para obtener todas las ordenes
+# Ruta para obtener todas las ordenes
+
+
 @app.get("/orders/", response_model=List[Order], tags=["orders"])
 def get_orders(session: Session = Depends(get_session)):
     orders = session.exec(select(Order)).all()
     return orders
 
-#Ruta para crear una nueva orden
+# Ruta para crear una nueva orden
+
+
 @app.post("/orders/", response_model=Order, tags=["orders"])
 async def create_order(order: Order, session: Session = Depends(get_session)):
     session.add(order)

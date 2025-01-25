@@ -14,7 +14,6 @@ users = {
 
 # Función para autenticar a un usuario.
 
-
 def verification(creds: HTTPBasicCredentials = Depends(security)):
     username = creds.username
     password = creds.password

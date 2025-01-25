@@ -32,6 +32,7 @@ class Order(SQLModel, table=True): #Guarda los pedidos
     total: Optional[float] = 0
     items: List[MenuItem] = Relationship(back_populates="orders", link_model=OrderItemLink)
     
+    
 
 MenuItem.orders = Relationship(back_populates="items", link_model=OrderItemLink) #Relacion entre menuitem y order
 

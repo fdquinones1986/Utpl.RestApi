@@ -16,7 +16,8 @@ from app.config import Settings
 
 from jose import jwt, JWTError
 
-#  Funcion para obter usuario por su correo electronico
+
+#  Funcion 
 def get_user(db: Session, email: EmailStr):
     return db.query(User).filter(User.email == email).first()
 

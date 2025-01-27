@@ -183,14 +183,6 @@ def get_menu(session: Session = Depends(get_session), Verification=Depends(verif
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
 
-# Verificar si necesita esto
-
-
-# Verificar si necesita esto
-@app.get("/menu/", response_model=List[MenuItem], tags=["menu"])
-def list_menu_items(session: Session = Depends(get_session)):  # Verificar si necesita esto
-    return get_menu(session)  # Verificar si necesita esto
-
 # Ruta para agregar un item al menu
 
 

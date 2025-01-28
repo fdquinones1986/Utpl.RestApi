@@ -146,7 +146,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
             detail="Incorrect username or password",
         )
 
-    token = create_access_token(user.id, timedelta(minutes=30))
+    token = create_access_token({"userid": user.id, "username": user.username}, timedelta(minutes=30))
     refresh = create_refresh_token(user.id, timedelta(minutes=1008))
 
     return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}

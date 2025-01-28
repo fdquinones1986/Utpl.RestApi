@@ -12,7 +12,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from fastapi import Depends, HTTPException, status, Request
 
-from app.config import Settings
+from app.config import setting
 
 from jose import jwt, JWTError
 
@@ -51,10 +51,10 @@ def create_access_token(subject: Union[str, Any], expires_delta: int = None) -> 
     if expires_delta is not None:
         expires_delta = datetime.utcnow() + expires_delta
     else:
-        expires_delta = datetime.utcnow() + timedelta(minutes=Settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = datetime.utcnow() + timedelta(minutes=setting.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode = {"exp": expires_delta, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, Settings.secret_key, Settings.algorithm)
+    encoded_jwt = jwt.encode(to_encode, setting.secret_key, setting.algorithm)
     return encoded_jwt
 
 # Función para crear un nuevo token de refresco
@@ -67,13 +67,13 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None) ->
 
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     encoded_jwt = jwt.encode(
-        to_encode, Settings.refresh_secret_key, Settings.algorithm)
+        to_encode, setting.refresh_secret_key, setting.algorithm)
     return encoded_jwt
 
 # Función para decodificar un token
 def decodeJWT(jwtoken: str):
     try:
-        payload = jwt.decode(jwtoken, Settings.secret_key, Settings.algorithm)
+        payload = jwt.decode(jwtoken, setting.secret_key, setting.algorithm)
         return payload
     except JWTError:
         return None

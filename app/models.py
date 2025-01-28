@@ -27,7 +27,7 @@ class StatusEnum(str, Enum):
     canceled = "cancelado"
 
 class Order(SQLModel, table=True): #Guarda los pedidos
-    id: Optional[int] = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    id: int = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
     customer_name: str
     status: StatusEnum = Field(default=StatusEnum.pending)
     total: Optional[float] = 0
@@ -83,8 +83,13 @@ class Token(SQLModel, table=True): #Guarda los tokens
     user_id: int = Field(foreign_key="user.id")
 
 
-#Dtos para el manejo en controladores
+#Datos para el manejo en controladores
 class MenuItemCreate(BaseModel): #Guarda los items del menu
     name: str
     description: str
     price: float
+
+class OrderCreate(BaseModel): #Guarda los pedidos
+    customer_name: str
+    status: StatusEnum = StatusEnum.pending
+    items: List[int]

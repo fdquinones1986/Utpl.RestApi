@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
-from app.models import MenuItem, MenuItemCreate, Order, OrderItemLink, GetUser, PostUser, User
+from app.models import MenuItem, MenuItemCreate, Order, OrderItemLink, GetUser, PostUser, User, OrderCreate
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
@@ -228,17 +228,19 @@ def get_orders(session: Session = Depends(get_session)):
 
 
 @app.post("/orders/", response_model=Order, tags=["orders"])
-async def create_order(order: Order, session: Session = Depends(get_session)):
-    session.add(order)
+async def create_order(order: OrderCreate, session: Session = Depends(get_session)):
+    orderDb = Order(**order.model_dump())
+    session.add(orderDb)
     session.commit()
-    session.refresh(order)
+    session.refresh(orderDb)
 
-    await send_message_telegram(f"Se ha creado una nueva orden con el id: {order.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}")
+    await send_message_telegram(f"Se ha creado una nueva orden con el id: {orderDb.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}")
     send_email("Confirmación de orden", f"Se ha creado una nueva orden con el id: {order.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}", [
                "ncwork.350@outlook.com"])
-    return order
+    return orderDb
 
 
+# Ruta para actualizar el estado de una orden
 @app.put("/orders/{order_id}", tags=["orders"])
 async def update_order_status(order_id: int, status_update: Order, session: Session = Depends(get_session)):
     order = session.get(Order, order_id)

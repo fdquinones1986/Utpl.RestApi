@@ -193,8 +193,8 @@ async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_ses
     session.commit()
     session.refresh(itemDb)
 
-    await send_message_telegram(f"Se ha creado un nuevo item en el menú con el id: {MenuItem.id} y nombre: {MenuItem.name} con la sigiente descripción: {MenuItem.description} y precio: {MenuItem.price}")
-    send_email("Confirmación de item en el menú", f"Se ha creado un nuevo item en el menú con el id: {MenuItem.id} y nombre: {MenuItem.name} con la sigiente descripción: {MenuItem.description} y precio: {MenuItem.price}", [
+    await send_message_telegram(f"Se ha creado un nuevo item en el menú con el id: {itemDb.id} y nombre: {itemDb.name} con la sigiente descripción: {itemDb.description} y precio: {itemDb.price}")
+    send_email("Confirmación de item en el menú", f"Se ha creado un nuevo item en el menú con el id: {itemDb.id} y nombre: {itemDb.name} con la sigiente descripción: {itemDb.description} y precio: {itemDb.price}", [
                "ncwork.350@outlook.com"])
     return itemDb
 

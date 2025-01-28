@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
-from app.models import MenuItem, Order, OrderItemLink, GetUser, PostUser, User
+from app.models import MenuItem, MenuItemCreate, Order, OrderItemLink, GetUser, PostUser, User
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
@@ -187,15 +187,16 @@ def get_menu(session: Session = Depends(get_session), Verification=Depends(verif
 
 
 @app.post("/menu/", response_model=MenuItem, tags=["menu"])
-async def add_menu_item(item: MenuItem, session: Session = Depends(get_session)):
-    session.add(item)
+async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_session)):
+    itemDb  = MenuItem(**item.model_dump())
+    session.add(itemDb)
     session.commit()
-    session.refresh(item)
+    session.refresh(itemDb)
 
     await send_message_telegram(f"Se ha creado un nuevo item en el menú con el id: {MenuItem.id} y nombre: {MenuItem.name} con la sigiente descripción: {MenuItem.description} y precio: {MenuItem.price}")
     send_email("Confirmación de item en el menú", f"Se ha creado un nuevo item en el menú con el id: {MenuItem.id} y nombre: {MenuItem.name} con la sigiente descripción: {MenuItem.description} y precio: {MenuItem.price}", [
                "ncwork.350@outlook.com"])
-    return item
+    return itemDb
 
 # Ruta para eliminar un item del menu
 

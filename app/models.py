@@ -8,8 +8,9 @@ from enum import Enum
 #Clases para el manejo de pedidos
 
 class OrderItemLink(SQLModel, table=True):#Guarda los items de los pedidos
-    order_id: int = Field(foreign_key="order.id", primary_key=True)
-    menu_item_id: int = Field(foreign_key="menuitem.id", primary_key=True)
+    id: int = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="order.id")
+    menu_item_id: int = Field(foreign_key="menuitem.id")
 
 class MenuItem(SQLModel, table=True): #Guarda los items del menu
     id: int = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
@@ -80,3 +81,10 @@ class Token(SQLModel, table=True): #Guarda los tokens
     id: int = Field(primary_key=True, index=True)
     token: str = Field(index=True)
     user_id: int = Field(foreign_key="user.id")
+
+
+#Dtos para el manejo en controladores
+class MenuItemCreate(BaseModel): #Guarda los items del menu
+    name: str
+    description: str
+    price: float

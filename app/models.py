@@ -72,7 +72,7 @@ class User(SQLModel, table=True): #Guarda a los usuarios
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
-    phone: int = Field(default=None)
+    phone: Optional[int] = Field(default=None)
     hashed_password: str
     role: str = Field(default="user")
 

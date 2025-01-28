@@ -1,1 +1,1 @@
-drop TABLE orderitemlink;
+drop TABLE IF EXISTS public.user;

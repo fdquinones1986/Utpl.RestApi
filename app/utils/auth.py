@@ -23,24 +23,16 @@ def get_user(db: Session, email: EmailStr):
 
 
 # Función para crear un nuevo usuario
-def create_user(db: Session,  user: PostUser, email: str, role: str = "user"):
-    # Verificar si ya existe un usuario con el mismo correo
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El correo ya está registrado.",
-        )
-    
+def create_user(db: Session,  user: PostUser, role: str = "user"):
     # Crear el hash de la contraseña
     passHash = secure_pwd(user.password)
 
     # Crear el nuevo usuario
-    new_user = User(email=user.email, hashed_password=passHash, role=role, user_name=user.username)
+    new_user = User(email=user.email, hashed_password=passHash, role=role, username=user.username)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)  # Actualiza el objeto con datos de la base de datos
-    return new_user ("Usuario creado correctamente")
+    return new_user
 
 # Función para obtener un usuario por su ID
 def get_token(db: Session, token: str):

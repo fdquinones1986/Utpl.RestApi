@@ -111,7 +111,6 @@ def list_users(session: Session = Depends(get_session)):
 
 # Ruta para registrar un usuario
 
-
 @app.post("/register", response_model=GetUser, tags=["users"])
 def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
@@ -133,7 +132,6 @@ def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
 # Ruta para iniciar sesión
 
-
 @ app.post("/login", tags=["users"])
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_session)):
     """
@@ -146,7 +144,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
             detail="Incorrect username or password",
         )
 
-    token = create_access_token({"userid": user.id, "username": user.username}, timedelta(minutes=30))
+    token = create_access_token(user.id, timedelta(minutes=30))
     refresh = create_refresh_token(user.id, timedelta(minutes=1008))
 
     return {'access_token': token, 'token_type': 'bearer', 'refresh_token': refresh, "user_id": user.id}
@@ -179,7 +177,7 @@ def delete_user(user_id: int, session: Session = Depends(get_session)):
 # Gestión del Menú
 # obtener todo el menu
 @app.get("/menu/", response_model=List[MenuItem], tags=["menu"])
-def get_menu(session: Session = Depends(get_session), Verification=Depends(verification)):
+def get_menu(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)): #Autenticación jwt
     menu_items = session.exec(select(MenuItem)).all()
     return menu_items
 
@@ -188,7 +186,7 @@ def get_menu(session: Session = Depends(get_session), Verification=Depends(verif
 
 @app.post("/menu/", response_model=MenuItem, tags=["menu"])
 async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_session)):
-    itemDb  = MenuItem(**item.model_dump())
+    itemDb = MenuItem(**item.model_dump())
     session.add(itemDb)
     session.commit()
     session.refresh(itemDb)
@@ -199,7 +197,6 @@ async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_ses
     return itemDb
 
 # Ruta para eliminar un item del menu
-
 
 @app.delete("/menu/{item_id}", tags=["menu"])
 async def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
@@ -225,7 +222,6 @@ def get_orders(session: Session = Depends(get_session)):
     return orders
 
 # Ruta para crear una nueva orden
-
 
 @app.post("/orders/", response_model=Order, tags=["orders"])
 async def create_order(order: OrderCreate, session: Session = Depends(get_session)):

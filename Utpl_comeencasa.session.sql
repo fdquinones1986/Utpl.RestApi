@@ -1,3 +1,1 @@
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public';
+DROP TABLE IF EXISTS public.token CASCADE;

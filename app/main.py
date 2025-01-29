@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Annotated
 
-from app.models import MenuItem, MenuItemCreate, Order, OrderItemLink, GetUser, PostUser, User, OrderCreate
+from app.models import MenuItem, MenuItemCreate, Order, OrderItemLink, GetUser, PostUser, User, OrderCreate, OrderUpdate
 from sqlmodel import Session, select
 from app.db import init_db, get_session
 
@@ -33,20 +33,16 @@ tags_metadata = [
         "description": "Mensaje de biendvenida a la API de Come en Casa",
     },
     {
+        "name": "users",
+        "description": "Operaciones relacionadas con los usuarios de Come en Casa",
+    },
+    {
         "name": "menu",
         "description": "Operaciones relacionadas con el menú de Come en Casa",
     },
     {
         "name": "orders",
         "description": "Operaciones relacionadas con las órdenes de Come en Casa",
-    },
-    {
-        "name": "users",
-        "description": "Operaciones relacionadas con los usuarios de Come en Casa",
-    },
-    {
-        "name": "Auth",
-        "description": "Operaciones de autenticación y autorización",
     }
 ]
 
@@ -105,7 +101,7 @@ def read_root():
 # Gestión de Usuarios
 # Ruta para obtener todos los usuarios
 @app.get("/users", response_model=List[GetUser], tags=["users"])
-def list_users(session: Session = Depends(get_session)):
+def list_users(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     users = session.exec(select(User)).all()
     return users
 
@@ -161,9 +157,8 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 
 # Ruta para elminar un usuario
 
-
 @app.delete("/users/{user_id}", tags=["users"])
-def delete_user(user_id: int, session: Session = Depends(get_session)):
+def delete_user(user_id: int, session: Session = Depends(get_session), Verification: bool = Depends(verification)):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -185,7 +180,7 @@ def get_menu(session: Session = Depends(get_session), current_user: User = Depen
 
 
 @app.post("/menu/", response_model=MenuItem, tags=["menu"])
-async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_session)):
+async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     itemDb = MenuItem(**item.model_dump())
     session.add(itemDb)
     session.commit()
@@ -199,7 +194,7 @@ async def add_menu_item(item: MenuItemCreate, session: Session = Depends(get_ses
 # Ruta para eliminar un item del menu
 
 @app.delete("/menu/{item_id}", tags=["menu"])
-async def delete_menu_item(item_id: int, session: Session = Depends(get_session)):
+async def delete_menu_item(item_id: int, session: Session = Depends(get_session), Verification: bool = Depends(verification)):
     item = session.get(MenuItem, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Ítem no encontrado")
@@ -217,37 +212,68 @@ async def delete_menu_item(item_id: int, session: Session = Depends(get_session)
 
 
 @app.get("/orders/", response_model=List[Order], tags=["orders"])
-def get_orders(session: Session = Depends(get_session)):
+def get_orders(session: Session = Depends(get_session), Verification: bool = Depends(verification)):
     orders = session.exec(select(Order)).all()
     return orders
 
 # Ruta para crear una nueva orden
 
 @app.post("/orders/", response_model=Order, tags=["orders"])
-async def create_order(order: OrderCreate, session: Session = Depends(get_session)):
-    orderDb = Order(**order.model_dump())
+async def create_order(order: OrderCreate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    # Fetch the menu items from the database
+    menu_items = session.query(MenuItem).filter(MenuItem.id.in_([item.menu_item_id for item in order.items])).all()
+    
+    # Check if all menu items exist
+    if len(menu_items) != len(order.items):
+        raise HTTPException(status_code=404, detail="One or more menu items not found")
+
+    # Calculate the total price of the order
+    total = sum(item.price for item in menu_items)
+
+    # Create the Order instance
+    orderDb = Order(
+        customer_name=order.customer_name,
+        status=order.status,
+        total=total,
+    )
+
+    # Create the OrderItemLink instances
+    orderDb.items = [
+        OrderItemLink(menu_item_id=item.menu_item_id)
+        for item in order.items
+    ]
+
+    # Add the order to the session and commit
     session.add(orderDb)
     session.commit()
     session.refresh(orderDb)
 
-    await send_message_telegram(f"Se ha creado una nueva orden con el id: {orderDb.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}")
-    send_email("Confirmación de orden", f"Se ha creado una nueva orden con el id: {order.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}", [
+    # Send notifications
+    await send_message_telegram(f"Se ha creado una nueva orden con el id: {orderDb.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {orderDb.total}")
+    send_email("Confirmación de orden", f"Se ha creado una nueva orden con el id: {orderDb.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {orderDb.total}", [
                "ncwork.350@outlook.com"])
+
     return orderDb
 
-
 # Ruta para actualizar el estado de una orden
-@app.put("/orders/{order_id}", tags=["orders"])
-async def update_order_status(order_id: int, status_update: Order, session: Session = Depends(get_session)):
+@app.put("/orders/{order_id}", response_model=Order, tags=["orders"])
+async def update_order_status(order_id: int, status_update: OrderUpdate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    # Fetch the order from the database
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    # Update the order status
     order.status = status_update.status
+
+    # Save the changes to the database
     session.add(order)
     session.commit()
     session.refresh(order)
 
-    await send_message_telegram(f"Se ha actualizado una orden con el id: {Order.id} a nombre de: {Order.customer_name} con el estado de: {Order.status} y total de: {Order.total}")
-    send_email("Actualización de orden", f"Se ha actualizado una orden con el id: {Order.id} a nombre de: {Order.customer_name} con el estado de: {Order.status} y total de: {Order.total}", [
+    # Send notifications
+    await send_message_telegram(f"Se ha actualizado una orden con el id: {order.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}")
+    send_email("Actualización de orden", f"Se ha actualizado una orden con el id: {order.id} a nombre de: {order.customer_name} con el estado de: {order.status} y total de: {order.total}", [
                "ncwork.350@outlook.com"])
-    return order("Orden Actualizada Correctamente")
+
+    return order

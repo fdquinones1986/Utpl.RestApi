@@ -8,10 +8,14 @@ from enum import Enum
 # Clases para el manejo de pedidos
 
 
-class OrderItemLink(SQLModel, table=True):  # Guarda los items de los pedidos
+class OrderItemLink(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     order_id: int = Field(foreign_key="order.id")
     menu_item_id: int = Field(foreign_key="menuitem.id")
+
+    # Define relationships
+    order: "Order" = Relationship(back_populates="items")
+    menu_item: "MenuItem" = Relationship(back_populates="orders")
 
 
 class MenuItem(SQLModel, table=True):  # Guarda los items del menu
@@ -20,8 +24,7 @@ class MenuItem(SQLModel, table=True):  # Guarda los items del menu
     name: str
     description: str
     price: float
-    orders: List["Order"] = Relationship(
-        back_populates="items", link_model=OrderItemLink)
+    orders: List["OrderItemLink"] = Relationship(back_populates="menu_item")
 
 
 class StatusEnum(str, Enum):
@@ -32,14 +35,15 @@ class StatusEnum(str, Enum):
     canceled = "cancelado"
 
 
-class Order(SQLModel, table=True):  # Guarda los pedidos
+class Order(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True,
                     sa_column_kwargs={"autoincrement": True})
     customer_name: str
     status: StatusEnum = Field(default=StatusEnum.pending)
     total: Optional[float] = 0
-    items: List[MenuItem] = Relationship(
-        back_populates="orders", link_model=OrderItemLink)
+
+    # Define relationship with OrderItemLink
+    items: List["OrderItemLink"] = Relationship(back_populates="order")
 
 
 # Relacion entre menuitem y order
@@ -101,7 +105,16 @@ class MenuItemCreate(BaseModel):  # Guarda los items del menu
     price: float
 
 
-class OrderCreate(BaseModel):  # Guarda los pedidos
+class OrderItemLinkCreate(BaseModel):
+    menu_item_id: int
+    quantity: int  # Add this if you want to track quantities
+
+
+class OrderCreate(BaseModel):
     customer_name: str
     status: StatusEnum = StatusEnum.pending
-    items: List[int]
+    items: List[OrderItemLinkCreate]
+
+class OrderUpdate(BaseModel):
+    order_id: int
+    status: StatusEnum

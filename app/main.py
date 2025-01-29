@@ -104,6 +104,7 @@ def bienvenida():
 
 
 @app.get("/ordenes", response_model=List[Orden], tags=["ordenes"])
+@version(2, 0)
 async def leer_ordenes(session: Session = Depends(get_session), Verification=Depends(verification)):
     resultItems = session.exec(select(Orden)).all()
     return resultItems
@@ -114,6 +115,7 @@ async def leer_ordenes(session: Session = Depends(get_session), Verification=Dep
 
 
 @app.post("/ordenes", response_model=Orden, tags=["ordenes"])
+@version(2, 0)
 async def crear_orden(orden: Orden, session: Session = Depends(get_session), Verification=Depends(verification)):
     session.add(orden)
     session.commit()
@@ -160,6 +162,7 @@ async def eliminar_orden(orden_id: int, session: Session = Depends(get_session),
 
 # Register new user using email, username, password
 @ app.post("/register", response_model=GetUser, tags=["usuarios"])
+@version(1, 0)
 def register_user(payload: PostUser, session: Session = Depends(get_session)):
 
     if not payload.email:
@@ -203,3 +206,6 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     Get current user details
     """
     return current_user
+
+
+app = VersionedFastAPI(app)

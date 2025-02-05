@@ -10,3 +10,4 @@ python-jose==3.3.0
 fastapi-versioning==0.10.0
 email_validator==2.2.0
 SQLAlchemy==2.0.36
+passlib==1.7.4

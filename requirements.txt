@@ -8,3 +8,5 @@ python-multipart==0.0.20
 python_telegram_bot==21.10
 python-jose==3.3.0
 fastapi-versioning==0.10.0
+email_validator==2.2.0
+SQLAlchemy==2.0.36
